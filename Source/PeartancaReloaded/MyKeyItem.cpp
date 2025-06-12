@@ -1,8 +1,11 @@
 #include "MyKeyItem.h"
+
+#include "MiPlayerController.h"
 #include "MyPear.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
+#include "Kismet/GameplayStatics.h"
 
 AMyKeyItem::AMyKeyItem()
 {
@@ -31,14 +34,20 @@ void AMyKeyItem::NotifyActorBeginOverlap(AActor* OtherActor)
 	if (OtherActor && OtherActor != this)
 	{
 		AMyPear* Player = Cast<AMyPear>(OtherActor);
-		if (Player && !Player->Tags.Contains("HasKey"))
+		if (Player)
 		{
-			Player->Tags.Add("HasKey");
+			Player->KeyCount++;
 
-			if (GEngine)
+			APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+			if (PC)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("Llave obtenida"));
+				AMiPlayerController* MyPC = Cast<AMiPlayerController>(PC);
+				if (MyPC)
+				{
+					MyPC->ShowKeyObtainedMessage();
+				}
 			}
+
 
 			Destroy();
 		}

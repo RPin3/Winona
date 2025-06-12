@@ -27,14 +27,18 @@ void AMyWall::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherA
 {
 	if (OtherActor && OtherActor != this)
 	{
-
+	
 		AMyBullet* bullet = Cast<AMyBullet>(OtherActor);
-		AMyWall::Health -= bullet->Damage;
-		if (Health <= 0)
+		if (bullet)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Mori");
-			Destroy();
+			AMyWall::Health -= bullet->Damage;
+			if (Health <= 0)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Mori");
+				Destroy();
+			}
 		}
+
 	}
 }
 

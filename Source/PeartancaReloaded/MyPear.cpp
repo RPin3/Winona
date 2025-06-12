@@ -1,10 +1,31 @@
 #include "MyPear.h"
 
+#include "MainHUDWidget.h"
+#include "MyGameModeBase.h"
+#include "Components/BoxComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "MiPlayerController.h"
+
+
+AMyPear::AMyPear()
+{
+	BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
+	RootComponent = BoxComponent;
+	BoxComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	BoxComponent->SetCollisionObjectType(ECollisionChannel::ECC_Pawn);
+	BoxComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
+	CurrentAmmo = 10;
+	MaxAmmo = 10;
+
+}
+
 void AMyPear::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	InputComponent->BindAxis("Vertical", this, &AMyPear::VerticalAxis);
 	InputComponent->BindAxis("Horizontal", this, &AMyPear::HorizontalAxis);
 	InputComponent->BindAction("Fire", IE_Pressed, this, &AMyPear::FireProjectile);
+	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &AMyPear::ReloadAmmo);
+
 }
 
 void AMyPear::VerticalAxis(float Value)
@@ -21,26 +42,76 @@ void AMyPear::HorizontalAxis(float Value)
 
 void AMyPear::FireProjectile()
 {
-	GetWorld()->SpawnActor<AActor>(spawnObject, GetActorLocation(), GetActorRotation());
+	
+		if (CurrentAmmo > 0)
+		{
+			GetWorld()->SpawnActor<AActor>(spawnObject, GetActorLocation(), GetActorRotation());
+			CurrentAmmo--;
+
+			APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+			if (PC)
+			{
+				AMiPlayerController* MyPC = Cast<AMiPlayerController>(PC);
+				if (MyPC && MyPC->MainHUD)
+				{
+					MyPC->MainHUD->UpdateAmmo(CurrentAmmo, MaxAmmo);
+				}
+			}
+		}
+
 }
 
 void AMyPear::ReceiveDamage(float DamageAmount)
 {
 	Health -= DamageAmount;
 
-	if (GEngine)
+
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (PC)
 	{
-		FString Msg = FString::Printf(TEXT("¡Daño recibido! Vida restante: %.1f"), Health);
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, Msg);
+		AMiPlayerController* MyPC = Cast<AMiPlayerController>(PC);
+		if (MyPC && MyPC->MainHUD)
+		{
+			MyPC->MainHUD->UpdateHealth(Health / 100.0f);  
+		}
 	}
 
 	if (Health <= 0.0f)
 	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("GAME OVER"));
-		}
-
-		Destroy(); // 💥 Destruye el actor
+		Destroy();
 	}
+}
+
+void AMyPear::ReloadAmmo()
+{
+	CurrentAmmo = MaxAmmo;
+
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (PC)
+	{
+		AMiPlayerController* MyPC = Cast<AMiPlayerController>(PC);
+		if (MyPC && MyPC->MainHUD)
+		{
+			MyPC->MainHUD->UpdateAmmo(CurrentAmmo, MaxAmmo);
+		}
+	}
+}
+
+
+void AMyPear::BeginPlay()
+{
+	Super::BeginPlay();
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (PC)
+	{
+		AMiPlayerController* MyPC = Cast<AMiPlayerController>(PC);
+		if (MyPC && MyPC->MainHUD)
+		{
+			MyPC->MainHUD->UpdateAmmo(CurrentAmmo, MaxAmmo);
+			MyPC->MainHUD->UpdateHealth(Health / 100.0f);
+		}
+	}
+
+	InitialLocation = GetActorLocation();
+	InitialRotation = GetActorRotation();
 }

@@ -27,4 +27,8 @@ private:
 
 	UPROPERTY(VisibleAnywhere)
 	UStaticMeshComponent* Mesh;
+
+	FTimerHandle TimerHandle;
+	FTimerDelegate TimerDelegate;
+	
 };
